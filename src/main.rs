@@ -28,6 +28,8 @@ fn test(arg: impl Fn(())) {
     check::<_, ()>(fn_4); // Ok
 }
 
+mod from_req;
+
 fn main() {
     println!("Hello, world!");
 }
