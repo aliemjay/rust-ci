@@ -1,81 +1,35 @@
-use std::{
-    future::Future,
-    marker::PhantomData,
-    pin::Pin,
-    task::{Context, Poll},
-};
-
-mod selector {
-    use super::*;
-
-    pub trait Selector<'a> {
-        type Error;
-        type Future: Future<Output = Self>;
-        fn select() -> Self::Future;
-    }
-
-    impl<'a> Selector<'a> for u8 {
-        type Error = ();
-        type Future = Pin<Box<dyn Future<Output = Self>>>;
-        fn select() -> Self::Future {
-            unimplemented!()
-        }
-    }
-
-    impl<'a, A, Err> Selector<'a> for (A,)
-    where
-        A: Selector<'a, Error = Err>,
-    {
-        type Error = ();
-        type Future = CustomFut<'a, Err, A>;
-        fn select() -> Self::Future {
-            unimplemented!()
-        }
-    }
-
-    pub struct CustomFut<'f, Err, A: Selector<'f, Error = Err>> {
-        //ph: PhantomData<(&'f (), Req, Err, A, A::Error, A::Future)>,
-        ph: PhantomData<(A::Future,)>,
-    }
-
-    impl<'f, Err, A: Selector<'f, Error = Err>> Future for CustomFut<'f, Err, A> {
-        type Output = (A,);
-        fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-            unimplemented!()
-        }
-    }
+pub trait Object<'a> { // <- can't remove `'a`
+    type Error; // <- can't remove because then `E`s are no longer constrained below
+    type Future;
 }
 
-mod async_fn {
-    use super::*;
-
-    pub trait AsyncFn {
-        type Future: Future<Output = ()>;
-        fn call(&self) -> Self::Future;
-    }
-
-    impl<F, Fut> AsyncFn for F
-    where
-        F: Fn() -> Fut,
-        Fut: Future<Output = ()>,
-    {
-        type Future = Fut;
-        fn call(&self) -> Self::Future {
-            (self)()
-        }
-    }
+impl Object<'static> for u8 {
+    type Error = ();
+    type Future = ();
 }
 
-async fn test() {
-    use self::{async_fn::AsyncFn, selector::Selector};
+impl<'a, E, A: Object<'a, Error = E>> Object<'a> for (A,) {
+    type Error = ();
+    type Future = CustomFut<'a, E, A>; // <- Replacing `E` with `A::Error` compiles
+}
 
-    async fn upper<T: Selector<'static>>() {
-        T::select().await;
-    }
+pub struct CustomFut<'a, E, A: Object<'a, Error = E>> {
+    ph: std::marker::PhantomData<(A::Future,)>, // <- adding `E` to the tuple compiles
+}
 
-    async fn call_async_fn(inner: impl AsyncFn) {
-        inner.call().await;
-    }
+pub trait AsyncFn {
+    fn call_async(&self);
+}
 
-    call_async_fn(upper::<(u8,)>).await;
+impl<F: Fn() -> Fut, Fut> AsyncFn for F {
+    fn call_async(&self) {}
+}
+
+async fn create<T: Object<'static>>() {
+    let _fut: T::Future = unimplemented!();
+    std::future::ready(()).await; // <- any await point should work
+}
+
+pub fn test() {
+    let _ = create::<(u8,)>.call_async(); // <- .call_async() is important (can't remove or replace with `(...)()`; so is `(u8,)` (`u8` doesn't work)
 }
