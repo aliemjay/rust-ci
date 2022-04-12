@@ -1,15 +1,21 @@
-#![feature(generic_associated_types, type_alias_impl_trait)]
-use core::future::Future;
+#![feature(generic_associated_types)]
+#![feature(type_alias_impl_trait)]
 
 trait Service<'a, Req> {
-    type Future: Future;
-    fn call(req: &'a Req) -> Self::Future;
+    type Output where Req: 'a;
+    fn call(req: &'a Req) -> Self::Output;
 }
 
-impl<'a, Req> Service<'a, Req> for u8 {
-    type Future = impl Future;
-    fn call(req: &'a Req) -> Self::Future {
-        async move { let x = req; }
+impl<'a, 'r, Req> Service<'a, &'r Req> for u8 {
+    type Output = &'a &'r Req where 'r: 'a;
+    fn call(req: &'a &'r Req) -> Self::Output {
+        req
     }
 }
 
+impl<'a, 'r, Req> Service<'a, &'r Req> for u16 {
+    type Output = impl Copy where 'r: 'a;
+    fn call(req: &'a &'r Req) -> Self::Output {
+        req
+    }
+}
