@@ -1,23 +1,23 @@
 #![feature(generic_associated_types)]
 use std::marker::PhantomData as PhD;
 
-pub trait Universe: 'static {
-    type Ty<'a>;
+pub trait Universe<'a>: 'static {
+    type Ty;
 }
 
-impl Universe for &'static u8 {
-    type Ty<'a> = &'a u8;
+impl<'a> Universe<'a> for &'static u8 {
+    type Ty = &'a u8;
 }
 
 trait Service<Req> {}
 
 struct BadCombinator<ReqU, S>(PhD<ReqU>, S);
 
-impl<ReqU, S> Service<ReqU::Ty<'_>> for BadCombinator<ReqU, S>
+impl<'c, ReqU, S> Service<<ReqU as Universe<'c>>::Ty> for BadCombinator<ReqU, S>
 where
-    ReqU: Universe,
+    ReqU: for<'a> Universe<'a>,
     S: Service<ReqU>,
-    S: for<'a> Service<ReqU::Ty<'a>>,
+    S: for<'a> Service<<ReqU as Universe<'a>>::Ty>,
 {
 }
 
