@@ -1,21 +1,30 @@
 #![feature(generic_associated_types)]
-#![feature(type_alias_impl_trait)]
+use std::marker::PhantomData as PhD;
 
-trait Service<'a, Req> {
-    type Output where Req: 'a;
-    fn call(req: &'a Req) -> Self::Output;
+pub trait Universe: 'static {
+    type Ty<'a>;
 }
 
-impl<'a, 'r, Req> Service<'a, &'r Req> for u8 {
-    type Output = &'a &'r Req where 'r: 'a;
-    fn call(req: &'a &'r Req) -> Self::Output {
-        req
-    }
+impl Universe for &'static u8 {
+    type Ty<'a> = &'a u8;
 }
 
-impl<'a, 'r, Req> Service<'a, &'r Req> for u16 {
-    type Output = impl Copy where 'r: 'a;
-    fn call(req: &'a &'r Req) -> Self::Output {
-        req
-    }
+trait Service<Req> {}
+
+struct BadCombinator<ReqU, S>(PhD<ReqU>, S);
+
+impl<ReqU, S> Service<ReqU::Ty<'_>> for BadCombinator<ReqU, S>
+where
+    ReqU: Universe,
+    S: for<'a> Service<ReqU::Ty<'a>>,
+    S: Service<ReqU>,
+{
+}
+
+fn test(f: impl for<'a> Service<&'a u8>) {
+    fn assert_good(_: impl for<'a> Service<&'a u8>) {}
+
+    // Without annotation
+    assert_good(BadCombinator(PhD::<&u8>, f));
+    assert_good(BadCombinator(PhD, f));
 }
