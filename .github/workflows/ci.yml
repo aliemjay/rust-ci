@@ -9,12 +9,9 @@ jobs:
       fail-fast: false
       matrix:
         rust:
-          - nightly-2022-07-30
-          - nightly-2022-08-02
-          - nightly-2022-08-03
-          - nightly-2022-08-04
-          - nightly-2022-08-05
-          - nightly-2022-08-06
+          - stable-1.63
+          - stable
+          - nightly
     name: Rust ${{ matrix.rust }}
     steps:
       - uses: actions/checkout@v2
