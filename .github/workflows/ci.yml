@@ -9,8 +9,16 @@ jobs:
       fail-fast: false
       matrix:
         rust:
-          - stable-1.63
-          - stable
+          - nightly-2023-02-15
+          - nightly-2023-02-16
+          - nightly-2023-02-17
+          - nightly-2023-02-18
+          - nightly-2023-02-19
+          - nightly-2023-02-20
+          - nightly-2023-02-21
+          - nightly-2023-02-22
+          - nightly-2023-02-23
+          - nightly-2023-02-24
           - nightly
     name: Rust ${{ matrix.rust }}
     steps:
