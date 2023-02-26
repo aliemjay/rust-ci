@@ -2,7 +2,7 @@
 
 use std::future::Future;
 
-type FutNothing = impl Future<Output = ()>;
+type FutNothing = impl Future;
 
 fn indirect() -> FutNothing {
     call(operation);
